@@ -1,0 +1,742 @@
+```{r}
+library(esquisse)
+library(ggplot2)
+##install.packages("splitstackshape")
+library(splitstackshape)
+library(DMwR)
+library(caTools)
+library(caret)
+library(blorr)
+library(MASS)
+##Wald Test
+##install.packages("aod")
+library(aod)
+library(class)
+library(DataExplorer)
+library(e1071)
+library(xgboost)
+library(car)
+##install.packages("ResourceSelection")
+library(ResourceSelection)
+library(randomForest)
+library(mctest)
+library(gbm)
+library(adabag)
+library(xgboost)
+
+```
+
+
+```{r}
+Cars = read.csv(file.choose())
+str(Cars)
+```
+
+```{r}
+Cars$Engineer = as.factor(Cars$Engineer)
+Cars$MBA = as.factor(Cars$MBA)
+Cars$license = as.factor(Cars$license)
+str(Cars)
+```
+```{r}
+summary(Cars)
+```
+```{r}
+plot_density(Cars)
+```
+
+```{r}
+prop.table(table(Cars$Transport))*100
+```
+
+```{r}
+esquisser(Cars)
+
+
+library(ggplot2)
+
+ggplot(Cars) +
+ aes(x = Transport) +
+ geom_bar(fill = "#6baed6") +
+ coord_flip() +
+ theme_minimal()
+```
+```{r}
+prop.table(table(Cars$Gender))
+```
+
+```{r}
+esquisser(Cars)
+library(ggplot2)
+
+ggplot(Cars) +
+ aes(x = Transport, fill = Gender) +
+ geom_bar() +
+ scale_fill_brewer(palette = "Blues") +
+ labs(title = "Transport By Gender") +
+ theme_minimal()
+```
+```{r}
+prop.table(table(Cars$Engineer))
+```
+```{r}
+prop.table(table(Cars$MBA))
+```
+```{r}
+prop.table(table(Cars$Engineer, Cars$MBA))
+```
+
+```{r}
+esquisser(Cars)
+library(ggplot2)
+ggplot(Cars) +
+ aes(x = Transport, fill = Engineer) +
+ geom_bar() +
+ scale_fill_brewer(palette = "Blues") +
+ labs(title = "Transport Medium By Profession (Engineer)") +
+ theme_minimal()
+```
+```{r}
+esquisser(Cars)
+
+library(ggplot2)
+
+ggplot(Cars) +
+ aes(x = Transport, fill = MBA) +
+ geom_bar() +
+ scale_fill_brewer(palette = "Blues") +
+ labs(title = "Transport Medium By Profession (MBA)") +
+ theme_minimal()
+```
+```{r}
+esquisser(Cars)
+
+
+library(ggplot2)
+
+ggplot(Cars) +
+ aes(x = Engineer, fill = MBA) +
+ geom_bar(position = "fill") +
+ scale_fill_brewer(palette = "Blues") +
+ labs(title = "Engineers and / or MBAs ") +
+ theme_minimal()
+```
+
+```{r}
+esquisser(Cars)
+
+library(ggplot2)
+
+ggplot(Cars) +
+ aes(x = Transport, fill = Engineer) +
+ geom_bar() +
+ scale_fill_brewer(palette = "Oranges") +
+ labs(title = "Transport Medium by Engineer And/Or MBAs") +
+ theme_minimal() +
+ facet_wrap(vars(MBA)) + theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+```{r}
+esquisser(Cars)
+library(ggplot2)
+ggplot(Cars) +
+ aes(x = Transport, y = Work.Exp) +
+ geom_boxplot(fill = "#6baed6") +
+ theme_minimal() + labs(title = "Transport Medium by Work Experience")
+```
+
+```{r}
+esquisser(Cars)
+
+ggplot(Cars) +
+ aes(x = Transport, y = Age) +
+ geom_boxplot(fill = "#4292c6") +
+ theme_minimal() +
+ labs(title = "Transport Medium by Age")
+
+library(ggplot2)
+
+ggplot(Cars) +
+ aes(x = Transport, y = Salary) +
+ geom_boxplot(fill = "#4292c6") +
+ theme_minimal() +
+ labs(title = "Transport Medium by Salary")
+```
+```{r}
+esquisser(Cars)
+
+library(ggplot2)
+
+ggplot(Cars) +
+ aes(x = Salary) +
+ geom_density(adjust = 1L, fill = "#6baed6") +
+ theme_minimal()
+```
+```{r}
+esquisser(Cars)
+
+library(ggplot2)
+
+ggplot(Cars) +
+ aes(x = Transport, y = Distance) +
+ geom_boxplot(fill = "#4292c6") +
+ labs(title = "Transport Medium By Distance") +
+ theme_minimal()
+```
+```{r}
+colnames(Cars)
+```
+
+```{r}
+library(corrplot)
+corrplot(cor(Cars[,c(1,5:7)]), method = "number")
+```
+```{r}
+cor.test(Cars$Age, Cars$Work.Exp)
+```
+```{r}
+cor.test(Cars$Age, Cars$Salary)
+```
+```{r}
+cor.test(Cars$Salary, Cars$Age)
+```
+
+##Missing Values
+```{r}
+colSums(is.na(Cars))
+```
+##Class Proportions
+```{r}
+prop.table(table(Cars$Transport))
+##67% of the data is related to Public Transport
+```
+##Data Preparation
+```{r}
+##Cars1 consist of 
+Cars1 = read.csv(file.choose())
+str(Cars1)
+
+```
+```{r}
+##Missing value treated
+```
+
+
+```{r}
+colSums(is.na(Cars1))
+```
+
+```{r}
+Cars1$Transport = as.factor(Cars1$Transport)
+str(Cars1)
+
+```
+
+```{r}
+Cars1$Engineer = as.factor(Cars1$Engineer)
+Cars1$MBA = as.factor(Cars1$MBA)
+Cars1$license = as.factor(Cars1$license)
+Cars1$Gender = as.factor(Cars1$Gender)
+```
+Dummy variables for Gender 
+
+```{r}
+library(caret)
+
+dummies <- dummyVars( "~ Gender", data = Cars1, fullRank = TRUE)
+trf <- data.frame(predict(dummies, newdata = Cars1))
+
+Cars1 = cbind(trf,Cars1)
+
+Cars1
+
+# dropping gender column 
+
+Cars1$Gender <- NULL
+Cars1$Gender.Male <- as.factor(Cars1$Gender.Male)
+str(Cars1)
+```
+##Train and Test Split
+```{r}
+library(caTools)
+set.seed(101)
+Split = sample.split(Cars1$Transport, SplitRatio = 0.7)
+Cars_Train = subset(Cars1, Split == TRUE)
+Cars_Test = subset(Cars1, Split == FALSE)
+prop.table(table(Cars1$Transport))
+```
+```{r}
+prop.table(table(Cars_Train$Transport))
+prop.table(table(Cars_Test$Transport))
+```
+
+
+```{r}
+##LR#1
+##Logistic Regression Full Model
+set.seed(101)
+Logit_Model1 = glm(Cars_Train$Transport ~ ., family = "binomial", data = Cars_Train)
+summary(Logit_Model1)
+```
+```{r}
+Train_LogitModel1_Predict = predict(Logit_Model1, Cars_Train)
+table(Cars_Train$Transport, Train_LogitModel1_Predict > 0.5)
+```
+```{r}
+36/43
+265/268
+(265+36)/(265+36+10)
+```
+
+```{r}
+Test_LogitMOdel1_Predict = predict(Logit_Model1, Cars_Test)
+table(Cars_Test$Transport, Test_LogitMOdel1_Predict > 0.5)
+```
+```{r}
+12/18
+113/115
+(113+12)/(113+8+12)
+```
+
+```{r}
+vif(Logit_Model1)
+##Age and Work Experience are highly multi-collinear
+```
+```{r}
+exp(coef(Logit_Model1))
+```
+```{r}
+wald.test(Sigma = vcov(Logit_Model1), b = coef(Logit_Model1), Terms = c(2:9))
+```
+
+```{r}
+##LR#2
+##Model after dropping Work Experience
+set.seed(101)
+Logit_Model2 = glm(Transport ~. -Work.Exp, family = "binomial", data = Cars_Train)
+summary(Logit_Model2)
+```
+```{r}
+Train_LogitModel2_Predict = predict(Logit_Model2, Cars_Train)
+table(Cars_Train$Transport, Train_LogitModel2_Predict > 0.5)
+```
+```{r}
+33/43
+266/268
+(266+33)/(266+2+10+33)
+```
+
+```{r}
+vif(Logit_Model2)
+```
+```{r}
+exp(coef(Logit_Model2))
+```
+```{r}
+Test_LogitModel2_Predict = predict(Logit_Model2, Cars_Test)
+table(Cars_Test$Transport, Test_LogitModel2_Predict > 0.5)
+```
+```{r}
+wald.test(Sigma = vcov(Logit_Model2), b = coef(Logit_Model2), Terms = c(2:8))
+```
+
+```{r}
+##Sensitivity
+15/18
+```
+```{r}
+113/115
+```
+```{r}
+(113+15)/(113+2+3+15)
+```
+
+```{r}
+##LR#3
+##Model based on the significant variables from LR#2
+set.seed(101)
+Logit_Model3 = glm(Transport ~ Age + MBA + Distance + license, family = "binomial", data = Cars_Train)
+summary(Logit_Model3)
+```
+```{r}
+Train_LogitModel3_Predict = predict(Logit_Model3, Cars_Train)
+table(Cars_Train$Transport, Train_LogitModel3_Predict > 0.5)
+```
+```{r}
+33/43
+266/268
+(266+33)/(266+2+10+33)
+```
+
+```{r}
+vif(Logit_Model3)
+```
+```{r}
+exp(coef(Logit_Model3))
+```
+
+```{r}
+Test_LogitModel3_Predict = predict(Logit_Model3, Cars_Test)
+table(Cars_Test$Transport, Test_LogitModel3_Predict > 0.5)
+```
+```{r}
+14/18
+113/115
+(113+14)/(113+2+4+14)
+```
+
+```{r}
+wald.test(Sigma = vcov(Logit_Model3), b = coef(Logit_Model3), Terms = c(2:5))
+```
+```{r}
+##LR#4
+##Model based on Age and Distance
+set.seed(101)
+Logit_Model4 = glm(Transport ~ Age + Distance , family = "binomial", data = Cars_Train)
+summary(Logit_Model4)
+```
+```{r}
+exp(coef(Logit_Model4))
+```
+```{r}
+Test_LogitModel4_Predict = predict(Logit_Model4, Cars_Test)
+table(Cars_Test$Transport, Test_LogitModel4_Predict > 0.5)
+```
+```{r}
+12/18
+```
+```{r}
+hoslem.test(Cars_Train$Transport,fitted(Logit_Model3))
+```
+##LR#5
+##Model based on the significant variables from LR#5
+
+
+```{r}
+library(caret)
+
+attach(Cars_Train)
+set.seed(101)
+
+ctrl <- trainControl(method = "repeatedcv", number = 10, repeats = 3,sampling = "up")
+Logit_Model5 <- train(Transport ~ Age+Distance,
+             data=Cars_Train,
+             method='glm',
+             trControl = ctrl)
+
+summary(Logit_Model5$finalModel)
+```
+```{r}
+exp(coef(Logit_Model5$finalModel))
+```
+```{r}
+Test_LogitModel5_Predict = predict(Logit_Model5, Cars_Test)
+table(Cars_Test$Transport, Test_LogitModel5_Predict > 0.5)
+confusionMatrix(Test_LogitModel5_Predict,Cars_Test$Transport, positive = '1')
+```
+```{r}
+12/18
+```
+```{r}
+hoslem.test(Cars_Train$Transport,fitted(Logit_Model3))
+```
+
+
+```{r}
+library(Deducer)
+rocplot(Logit_Model5$finalModel)
+```
+
+
+##KNN
+```{r}
+Cars2 = read.csv("D:/Nothing Official/Olympus/Statistics/Machine Learning/Group Assignment/Cars1.csv")
+str(Cars2)
+Cars2$Transport = as.factor(Cars2$Transport)
+
+set.seed(101)
+Split = sample(x = 2,nrow(Cars2),replace = TRUE, prob = c(0.7,0.3))
+Cars2_Train = Cars2[Split == 1, ]
+Cars2_Test = Cars2[Split == 2,]
+colnames(Cars2_Train)
+```
+
+```{r}
+#calculate the preprocess parameters from the dataset
+preprocessParams <- preProcess(Cars_Train,method = c("center","scale"))
+
+#summarize transform parameters
+
+print(preprocessParams)
+
+#transform the dataset using the parameters
+
+train_scale <- predict(preprocessParams, Cars_Train)
+test_scale <- predict(preprocessParams,Cars_Test)
+
+
+str(train_scale)
+str(test_scale)
+```
+
+
+```{r}
+str(train_scale)
+str(test_scale)
+train_scale$Gender.Male <-as.numeric(train_scale$Gender.Male)
+train_scale$Engineer <-as.numeric(train_scale$Engineer)
+train_scale$MBA <-as.numeric(train_scale$MBA)
+train_scale$license <- as.numeric(train_scale$license)
+
+test_scale$Gender.Male <-as.numeric(test_scale$Gender.Male)
+test_scale$Engineer <-as.numeric(test_scale$Engineer)
+test_scale$MBA <-as.numeric(test_scale$MBA)
+test_scale$license <- as.numeric(test_scale$license)
+
+library(class)
+set.seed(101)
+Cars_KNN1 = knn(train = (train_scale[,-9]), test = (test_scale[,-9]),cl= train_scale$Transport, k=17, prob = TRUE)
+table(test_scale$Transport, Cars_KNN1)
+
+```
+```{r}
+confusionMatrix(Cars_KNN1,test_scale$Transport,positive = '1' )
+```
+
+
+```{r}
+Cars_Train$Gender.Male <- as.numeric(Cars_Train$Gender.Male)
+Cars_Train$Engineer< -as.numeric(Cars_Train$Engineer)
+Cars_Train$MBA <- as.numeric(Cars_Train$MBA)
+Cars_Train$license <- as.numeric(Cars_Train$license)
+
+
+Cars_Test$Gender.Male <- as.numeric(Cars_Test$Gender.Male)
+Cars_Test$Engineer< -as.numeric(Cars_Test$Engineer)
+Cars_Test$MBA <- as.numeric(Cars_Test$MBA)
+Cars_Test$license <- as.numeric(Cars_Test$license)
+str(Cars_Test)
+Cars_Test
+set.seed(101)
+
+Cars_KNN2 = knn(train = scale(Cars_Train[,c(-3,-9)]), test = scale(Cars_Test[,c(-3,-9)]),cl= Cars_Train$Transport, k=17, prob = TRUE)
+table(Cars_Test$Transport, Cars_KNN2)
+```
+```{r}
+confusionMatrix(Cars_KNN2,Cars_Test$Transport,positive = '1' )
+```
+
+
+```{r}
+18/26
+111/111
+111/(111+26)
+```
+
+##Naive Bayes
+```{r}
+Cars_NB = naiveBayes(x = Cars_Train[,-9], y = Cars_Train[,9])
+Cars_NB
+```
+
+```{r}
+Cars_Test_NB_Pred = predict(Cars_NB, Cars_Test[,-9])
+table(Cars_Test[,9], Cars_Test_NB_Pred)
+```
+```{r}
+##Sensitivity
+15/18
+##Specificity
+113/115
+##Accuracy
+(113+15)/(113+2+3+15)
+```
+
+```{r}
+Cars_NB1 = naiveBayes(x = Cars_Train[,-c(5,9)], y = Cars_Train[,9])
+Cars_Test_NB1_Pred = predict(Cars_NB1, Cars_Test[,-c(5,9)])
+table(Cars_Test[,9], Cars_Test_NB1_Pred)
+```
+```{r}
+13/18
+114/115
+(114+13)/(114+1+5+13)
+```
+##Bagging - Random Forest
+```{r}
+##RF#1
+Cars_RF1<- randomForest(Transport ~ ., data = Cars_Train, 
+                   ntree=200, mtry = 4,importance=TRUE, set.seed(101) )
+Cars_RF1
+```
+```{r}
+39/43
+265/268
+(265+39)/(265+3+4+39)
+```
+
+
+```{r}
+Cars_Test_RF_Predict = predict(Cars_RF1,Cars_Test,type="class")
+table(Cars_Test$Transport, Cars_Test_RF_Predict)
+```
+```{r}
+14/18
+113/115
+(113+14)/(113+2+4+14)
+```
+```{r}
+##RF#2
+Cars_RF2 = randomForest(Transport ~ ., data = Cars_Train, 
+                   ntree=150, mtry = 3,importance=TRUE, set.seed(101) )
+Cars_RF2
+```
+```{r}
+38/43
+265/268
+(265+38)/(265+3+5+38)
+```
+
+```{r}
+Cars_Test_RF2_Predict = predict(Cars_RF2,Cars_Test,type="class")
+table(Cars_Test$Transport, Cars_Test_RF2_Predict)
+```
+```{r}
+17/18
+113/115
+(113+17)/(113+3+17)
+```
+
+
+##Boosting
+```{r}
+Cars_XGB = train(Transport ~., data = Cars_Train, method = "xgbTree", trControl = trainControl("cv", number = 5))
+varImp(Cars_XGB)
+```
+```{r}
+Cars_Test_XGB_Predict = predict(Cars_XGB, Cars_Test)
+table(Cars_Test[,9], Cars_Test_XGB_Predict)
+```
+```{r}
+15/18
+113/115
+(113+15)/(115+18)
+```
+
+```{r}
+xgbgrid = expand.grid(nrounds = c(50,100), max_depth = c(2,4,8), eta = c(0.4, 0,1, 0.01), colsample_bytree = seq(0.5, 0.8, length.out = 4), min_child_weight = 1, subsample = 1, gamma = 0)
+Cars_XGB1 = train(Transport ~., data = Cars_Train, method = "xgbTree", trControl = trainControl("cv", number = 5), tuneGrid = xgbgrid)
+Cars_Test_XGB1_Predict = predict(Cars_XGB1, Cars_Test)
+table(Cars_Test[,9], Cars_Test_XGB1_Predict)
+```
+```{r}
+varImp(Cars_XGB1)
+```
+
+```{r}
+##Sensitivity
+16/18
+```
+```{r}
+##Specificity
+113/115
+```
+##### Gradient boosting
+```{r run a GBM 1}
+gbm1 = gbm(Transport ~.,
+              data =Cars_Train,
+              distribution = "multinomial",
+              cv.folds = 10,
+              shrinkage = .01,
+              n.minobsinnode = 10,
+              n.trees = 200)
+print(gbm1)
+summary(
+  gbm1,
+  cBars = length(gbm1$var.names),
+  n.trees = gbm1$n.trees,
+  plotit = TRUE,
+  order = TRUE,
+  method = relative.influence,
+  normalize = TRUE
+)
+```
+
+```{r predict with GBM1}
+gbm1_pred = predict.gbm(object = gbm1,
+                   newdata = Cars_Test,
+                   n.trees = 200,
+                   type = "response")
+
+labels = colnames(gbm1_pred)[apply(gbm1_pred, 1, which.max)]
+result = data.frame(Cars_Test$Transport, labels)
+cmgbm1 = confusionMatrix(Cars_Test$Transport, as.factor(labels),positive = "1")
+print(cmgbm1)
+```
+```{r}
+gbm2 = gbm(Transport ~.,
+              data = Cars_Train,
+              distribution = "multinomial",
+              cv.folds = 20,
+              shrinkage = .01,
+              n.minobsinnode = 10,
+              n.trees = 400)
+print(gbm2)
+summary(
+  gbm2,
+  cBars = length(gbm2$var.names),
+  n.trees = gbm2$n.trees,
+  plotit = TRUE,
+  order = TRUE,
+  method = relative.influence,
+  normalize = TRUE
+)
+```
+```{r predict with GBM2}
+gbm2_pred = predict.gbm(object = gbm2,
+                   newdata = Cars_Test,
+                   n.trees = 400,
+                   type = "response")
+
+labels = colnames(gbm1_pred)[apply(gbm2_pred, 1, which.max)]
+result = data.frame(Cars_Test$Transport, labels)
+cmgbm2 = confusionMatrix(Cars_Test$Transport, as.factor(labels),positive = "1")
+print(cmgbm2)
+```
+```{r GBM with Caret library}
+tc = trainControl(method = "repeatedcv", number = 10)
+gbm3 = train(Transport ~., data=Cars_Train, method="gbm", trControl=tc)
+gbm3_pred = predict(gbm3, Cars_Testt)
+cmgbm3 = caret::confusionMatrix(Cars_Test$Transport, as.factor(gbm3_pred),positive = "1")
+print(cmgbm3)
+summary(
+  gbm3,
+  cBars = length(gbm3$var.names),
+  #n.trees = gbm3$n.trees,
+  plotit = TRUE,
+  order = TRUE,
+  method = relative.influence,
+  normalize = TRUE
+)
+summary(gbm3)
+
+### Adaboost Model
+
+```
+
+library(adabag)
+adaboost1 = boosting(Transport~., data=Cars_Train, boos=TRUE, mfinal=50)
+```
+```{r Predict using adaboost1}
+adaboost1_pred = predict(adaboost1, Cars_Test)
+adaboost1_1_pred=adaboost1_pred
+adaboost1_1_pred=as.factor(adaboost1_pred$class)
+confusionMatrix(adaboost1_1_pred,Cars_Test$Transport,positive = "1", dnn = c("Prediction","Actuals"))
+```
+```{r Adabag model using cv}
+adaboost2 = boosting.cv(Transport~., data=Cars_Train, boos=TRUE, mfinal=50, v=5)
+importance(adaboost2)
+```
+```{r Predict using adaboost2}
+adaboost2_pred = predict(adaboost1, Cars_Test)
+adaboost2_2_pred=as.factor(adaboost2_pred$class)
+confusionMatrix(adaboost2_2_pred,Cars_Test$Transport,positive = "1", dnn = c("Prediction","Actuals"))
